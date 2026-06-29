@@ -1,0 +1,135 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: API-GATEWAY
+  profiles:
+    active: dev
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          default-filters:
+            # Filtro global: se aplica a TODAS las rutas. Marca cada respuesta
+            # con el header X-Gateway-Origen para comprobar (ej: en Postman)
+            # que la peticion efectivamente paso por el Gateway y no fue
+            # llamada directo al microservicio.
+            - name: AddResponseHeader
+              args:
+                name: X-Gateway-Origen
+                value: API-GATEWAY
+
+          routes:
+            - id: auth-service
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: auth-service
+
+            - id: productos-service
+              uri: lb://PRODUCTOS-SERVICE
+              predicates:
+                - Path=/api/productos/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: productos-service
+
+            - id: categorias-service
+              uri: lb://CATEGORIAS-SERVICE
+              predicates:
+                - Path=/api/categorias/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: categorias-service
+
+            - id: empleados-service
+              uri: lb://EMPLEADOS-SERVICE
+              predicates:
+                - Path=/api/empleados/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: empleados-service
+
+            - id: inventario-service
+              uri: lb://INVENTARIO-SERVICE
+              predicates:
+                - Path=/api/inventario/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: inventario-service
+
+            - id: notificaciones-service
+              uri: lb://NOTIFICACIONES-SERVICE
+              predicates:
+                - Path=/api/notificaciones/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: notificaciones-service
+
+            - id: usuarios-service
+              uri: lb://USUARIOS-SERVICE
+              predicates:
+                - Path=/api/usuarios/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: usuarios-service
+
+            - id: pedidos-service
+              uri: lb://PEDIDOS-SERVICE
+              predicates:
+                - Path=/api/pedidos/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: pedidos-service
+
+            - id: proveedores-service
+              uri: lb://PROVEEDORES-SERVICE
+              predicates:
+                - Path=/api/proveedores/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: proveedores-service
+
+            - id: sucursales-service
+              uri: lb://SUCURSALES-SERVICE
+              predicates:
+                - Path=/api/sucursales/**
+              filters:
+                - name: AddRequestHeader
+                  args:
+                    name: X-Gateway-Route
+                    value: sucursales-service
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  enable-hateoas: false
