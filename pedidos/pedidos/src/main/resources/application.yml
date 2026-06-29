@@ -1,0 +1,17 @@
+server:
+  port: 8095
+
+spring:
+  application:
+    name: pedidos-service
+  profiles:
+    active: dev
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /doc/swagger-ui.html
+  enable-hateoas: false
