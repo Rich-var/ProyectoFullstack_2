@@ -1,0 +1,474 @@
+{
+  "info": {
+    "name": "Cafetería - Arquitectura de Microservicios (DSY1103)",
+    "description": "Colección básica de integración para probar el ecosistema completo via API Gateway (http://localhost:8080). Incluye login JWT, CRUD de Productos y Usuarios, y el flujo completo de Pedidos (comunicación entre microservicios via Feign + manejo de errores remotos).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "idProductoCreado", "value": "", "type": "string" },
+    { "key": "idUsuarioCreado", "value": "", "type": "string" },
+    { "key": "idPedidoCreado", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Login (guarda el token automáticamente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) {",
+                  "    pm.collectionVariables.set('token', data.token);",
+                  "    console.log('Token guardado en la variable {{token}}');",
+                  "}",
+                  "pm.test('Login responde 200 y entrega un token', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(data.token).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Endpoint público (no requiere token). Reemplaza el username/password por un usuario real precargado en tu BD de Auth."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Productos",
+      "item": [
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/productos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos"]
+            }
+          }
+        },
+        {
+          "name": "Listar productos activos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/productos/activos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos", "activos"]
+            }
+          }
+        },
+        {
+          "name": "Crear producto (guarda el ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.idProducto) { pm.collectionVariables.set('idProductoCreado', data.idProducto); }",
+                  "pm.test('Crear producto responde 201', function () { pm.response.to.have.status(201); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cafe Latte\",\n  \"descripcion\": \"Cafe con leche 350ml\",\n  \"precio\": 2500,\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/productos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos"]
+            }
+          }
+        },
+        {
+          "name": "Buscar producto por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/productos/{{idProductoCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos", "{{idProductoCreado}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cafe Latte Grande\",\n  \"descripcion\": \"Cafe con leche 500ml\",\n  \"precio\": 3000,\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/productos/{{idProductoCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos", "{{idProductoCreado}}"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar estado del producto (activo=false)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/productos/{{idProductoCreado}}/estado?activo=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos", "{{idProductoCreado}}", "estado"],
+              "query": [{ "key": "activo", "value": "false" }]
+            }
+          }
+        },
+        {
+          "name": "Eliminar producto",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/productos/{{idProductoCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos", "{{idProductoCreado}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Usuarios",
+      "item": [
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios"]
+            }
+          }
+        },
+        {
+          "name": "Crear usuario (guarda el ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.idUsuario) { pm.collectionVariables.set('idUsuarioCreado', data.idUsuario); }",
+                  "pm.test('Crear usuario responde 201', function () { pm.response.to.have.status(201); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cliente_postman\",\n  \"email\": \"cliente_postman@test.cl\",\n  \"password\": \"clave1234\",\n  \"rol\": \"CLIENTE\",\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios"]
+            }
+          }
+        },
+        {
+          "name": "Buscar usuario por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{idUsuarioCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{idUsuarioCreado}}"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar estado del usuario (activo=false)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{idUsuarioCreado}}/estado?activo=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{idUsuarioCreado}}", "estado"],
+              "query": [{ "key": "activo", "value": "false" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Pedidos (Feign + manejo de errores)",
+      "item": [
+        {
+          "name": "1. Reactivar usuario (precondición caso feliz)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{idUsuarioCreado}}/estado?activo=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{idUsuarioCreado}}", "estado"],
+              "query": [{ "key": "activo", "value": "true" }]
+            },
+            "description": "Pedidos valida via Feign que el usuario esté activo. Este paso asegura que el caso feliz funcione."
+          }
+        },
+        {
+          "name": "2. Reactivar producto (precondición caso feliz)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/productos/{{idProductoCreado}}/estado?activo=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "productos", "{{idProductoCreado}}", "estado"],
+              "query": [{ "key": "activo", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "3. Crear pedido - caso feliz (guarda el ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.idPedido) { pm.collectionVariables.set('idPedidoCreado', data.idPedido); }",
+                  "pm.test('Crear pedido responde 201 y trae el total calculado', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(data.total).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idUsuario\": {{idUsuarioCreado}},\n  \"idProducto\": {{idProductoCreado}},\n  \"cantidad\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos"]
+            },
+            "description": "El total se calcula automáticamente (precio del producto remoto x cantidad) gracias a las llamadas Feign hacia productos-service y usuarios-service."
+          }
+        },
+        {
+          "name": "4. Listar todos los pedidos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos"]
+            }
+          }
+        },
+        {
+          "name": "5. Buscar pedido por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/pedidos/{{idPedidoCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos", "{{idPedidoCreado}}"]
+            }
+          }
+        },
+        {
+          "name": "6. Listar pedidos por usuario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/pedidos/usuario/{{idUsuarioCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos", "usuario", "{{idUsuarioCreado}}"]
+            }
+          }
+        },
+        {
+          "name": "7. Actualizar estado del pedido (PREPARANDO)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"PREPARANDO\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pedidos/{{idPedidoCreado}}/estado",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos", "{{idPedidoCreado}}", "estado"]
+            }
+          }
+        },
+        {
+          "name": "8. CASO ERROR - Crear pedido con usuario inactivo (espera 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Responde 400 con ErrorResponse estructurado (no 500 genérico)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.error).to.exist;",
+                  "    pm.expect(data.mensajes).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{idUsuarioCreado}}/estado?activo=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{idUsuarioCreado}}", "estado"],
+              "query": [{ "key": "activo", "value": "false" }]
+            },
+            "description": "Paso 8a: desactiva al usuario. Corre el request '8b' a continuación para ver el 400 estructurado."
+          }
+        },
+        {
+          "name": "8b. CASO ERROR - Crear pedido con usuario inactivo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Responde 400 con ErrorResponse estructurado (no 500 genérico)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.mensajes[0]).to.include('inactivo');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idUsuario\": {{idUsuarioCreado}},\n  \"idProducto\": {{idProductoCreado}},\n  \"cantidad\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos"]
+            }
+          }
+        },
+        {
+          "name": "9. CASO ERROR - Pedido inexistente (espera 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Responde 404 con ErrorResponse estructurado', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.error).to.eql('Pedido no encontrado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/pedidos/999999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos", "999999"]
+            }
+          }
+        },
+        {
+          "name": "10. Eliminar pedido",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/pedidos/{{idPedidoCreado}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "pedidos", "{{idPedidoCreado}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

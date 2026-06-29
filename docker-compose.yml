@@ -1,0 +1,214 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-microservicios
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      MYSQL_DATABASE: db_usuario
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - auth-network
+
+  eureka-server:
+    build: ./eureka-server/eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - auth-network
+
+  auth-service:
+    build: ./Auth/2026_1_FullStack1_MicroServicioAuth-main
+    container_name: auth-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  api-gateway:
+    build: ./api-gateway/api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  categorias-service:
+    build: ./categorias/categorias
+    container_name: categorias-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  empleados-service:
+    build: ./empleados/empleados
+    container_name: empleados-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  inventario-service:
+    build: ./inventario/inventario
+    container_name: inventario-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  notificaciones-service:
+    build: ./notificaciones/notificaciones
+    container_name: notificaciones-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  usuarios-service:
+    build: ./usuarios/usuarios
+    container_name: usuarios-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  productos-service:
+    build: ./productos
+    container_name: productos-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  proveedores-service:
+    build: ./proveedores/proveedores
+    container_name: proveedores-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  sucursales-service:
+    build: ./sucursales/sucursales
+    container_name: sucursales-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - auth-network
+
+  # pedidos-service ademas depende de productos-service y usuarios-service porque los
+  # consume via Feign Client (ProductoClient / UsuarioClient) para armar cada pedido.
+  pedidos-service:
+    build: ./pedidos/pedidos
+    container_name: pedidos-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-system}
+      JWT_SECRET: ${JWT_SECRET:-system}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      productos-service:
+        condition: service_started
+      usuarios-service:
+        condition: service_started
+    networks:
+      - auth-network
+
+volumes:
+  mysql_data:
+
+networks:
+  auth-network:
+    driver: bridge
